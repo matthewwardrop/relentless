@@ -1,0 +1,107 @@
+import os
+import re
+import subprocess
+import time
+from multiprocessing import Lock, Value
+from abc import abstractmethod, ABCMeta
+
+class Computation(object):
+
+    def __init__(self, project, directory=".", **kwargs):
+        self.project = project
+        self.directory = os.path.abspath(directory)
+        self.compiled=Value('i',0)
+        self.lock = Lock()
+        self.init(**kwargs)
+
+    def init(self):
+        pass
+
+    def compile(self):
+        with self.lock:
+            if not self.compiled.value > 0:
+                self._compile()
+                self.compiled.value=1
+
+    def _compile(self):
+        raise NotImplementedError()
+
+    def run(self, task=0, params={}):
+        raise NotImplementedError()
+
+    def process_result(self, result):
+        for m in re.finditer('([A-Za-z0-9]+) = ([A-Za-z0-9]+)', result.stdout+result.stderr):
+            gs = m.groups()
+            result.info[gs[0]] = gs[1]
+        return result
+
+    def _run(self, task, params, *args, **kwargs):
+        if not self.compiled.value > 0:
+            self.compile()
+        defaults={'stdout':subprocess.PIPE, 'stderr':subprocess.PIPE}
+        defaults.update(kwargs)
+        t = time.time()
+        p = subprocess.Popen(*args, **defaults)
+        p.wait()
+        result = ComputationResult(task, params, runtime=time.time()-t, *p.communicate())
+        result.returncode = p.returncode
+        return self.process_result(result)
+
+class SimpleComputation(Computation):
+
+    def init(self, wrapper=None):
+        self.wrapper = wrapper
+
+    def _compile(self):
+        f = open(os.path.join(self.directory, 'compile.log'),'w')
+        compile = subprocess.Popen(["make","-f","~/.home_resources/Makefile",os.path.basename(self.project)],cwd=self.directory, stdout=f, stderr=f)
+        compile.wait()
+        f.close()
+        if compile.returncode != 0:
+            raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree.")
+
+    def run(self,task=0,params={}):
+        env = {}
+        for variable in params:
+            env["RELENTLESS_%s" % variable] = str(params[variable])
+
+        if self.wrapper is None:
+            cmd = [os.path.join(self.directory, self.project)]
+        else:
+            command = self.wrapper % {'project': os.path.join(self.directory, self.project), 'task': task}
+            cmd = command.split()
+
+        return self._run(task, params, cmd, env=env, cwd=self.directory)
+
+
+class MarathonComputation(SimpleComputation):
+
+    def init(self, wrapper=None):
+        if wrapper is None:
+            wrapper = "java -jar ../../tester.jar -exec %(project)s -seed %(task)s -novis"
+        self.wrapper = wrapper
+
+class ComputationResult(object):
+
+    def __init__(self, task, params, stdout, stderr, runtime):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.params = params
+        self.task = task
+        self.runtime = runtime
+        self.info = {}
+
+    @property
+    def score(self):
+        if 'score' in self.info:
+            return float(self.info['score'])
+        if 'Score' in self.info:
+            return float(self.info['Score'])
+        return -1
+        #raise ValueError("No score available in the info dictionary.")
+
+    def __str__(self):
+        return "<ComputationResult with score %f>" % self.score
+
+    def __repr__(self):
+        return str(self)

@@ -1,0 +1,42 @@
+#!/bin/python2
+
+import sys, os
+sys.path.insert(0,'..')
+
+import argparse
+import git
+import relentless
+
+parser = argparse.ArgumentParser(description='Use relentless to test performance of your code.')
+parser.add_argument('project', type=str, help='The project to be analysed by relentless.')
+parser.add_argument('action', type=str, help='The action to be performed by relentless.', choices=['annotate','optimise','iterate'])
+#parser.add_argument('integers', metavar='N', type=int, nargs='+',
+#                   help='an integer for the accumulator')
+parser.add_argument('--working-dir', dest='working_dir', default="_relentless")
+parser.add_argument('--type', default="simple")
+parser.add_argument('--wrapper', default=None)
+parser.add_argument('--ref', default="master")
+parser.add_argument('--cache', default=True, type=bool)
+parser.add_argument('--count', default=1, type=int)
+parser.add_argument('--output', default='history')
+parser.add_argument('--branches', default=None, nargs='*', type=str)
+parser.add_argument('--since', default=None, type=str)
+
+args = parser.parse_args()
+
+try:
+	git.Repo(os.path.dirname(args.project))
+	t = relentless.GitTester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, working_dir=args.working_dir, cache=args.cache, ref=args.ref)
+except Exception as e:
+ 	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, working_dir=args.working_dir, cache=args.cache)
+
+if args.action == "annotate":
+	if isinstance(t,relentless.GitTester):
+		t.annotate_commits(args.count, output=args.output, branches=args.branches, since=args.since)
+	else:
+		raise ValueError("Annotation is only available for projects stored in git repositories.")
+elif args.action == 'optimise':
+	raise ValueError("Optimisation is not yet fully baked.")
+	#t.annotate_commits(args.count, output=args.output, branches=args.branches, since=args.since)
+elif args.action == 'iterate':
+	raise ValueError("Optimisation is not yet fully baked.")
