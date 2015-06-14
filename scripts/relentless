@@ -7,20 +7,52 @@ import argparse
 import git
 import relentless
 
+def get_params(lparams):
+	params = {}
+	for param in lparams:
+		key,value = param.split("=")
+		params[key] = eval(value)
+	return params
+
+
 parser = argparse.ArgumentParser(description='Use relentless to test performance of your code.')
 parser.add_argument('project', type=str, help='The project to be analysed by relentless.')
-parser.add_argument('action', type=str, help='The action to be performed by relentless.', choices=['annotate','optimise','iterate'])
 #parser.add_argument('integers', metavar='N', type=int, nargs='+',
 #                   help='an integer for the accumulator')
+
 parser.add_argument('--working-dir', dest='working_dir', default="_relentless")
 parser.add_argument('--type', default="simple")
 parser.add_argument('--wrapper', default=None)
 parser.add_argument('--ref', default="master")
 parser.add_argument('--cache', default=True, type=bool)
-parser.add_argument('--count', default=1, type=int)
-parser.add_argument('--output', default='history')
-parser.add_argument('--branches', default=None, nargs='*', type=str)
-parser.add_argument('--since', default=None, type=str)
+
+subparsers = parser.add_subparsers(title='actions', description='The action to be performed by relentless.', dest='action')
+
+parser_run = subparsers.add_parser('run')
+parser_run.add_argument('task', default=0, type=int)
+parser_run.add_argument('--params', default=[], nargs="+")
+
+parser_annotate = subparsers.add_parser('annotate')
+parser_annotate.add_argument('--output', default='history')
+parser_annotate.add_argument('--count', default=1, type=int)
+parser_annotate.add_argument('--branches', default=None, nargs='*', type=str)
+parser_annotate.add_argument('--since', default=None, type=str)
+
+parser_dependence = subparsers.add_parser('dependence')
+parser_dependence.add_argument('--output', default='dependence')
+parser_dependence.add_argument('--count', default=1, type=int)
+parser_dependence.add_argument('--tasks', default=None, type=int, nargs="+")
+parser_dependence.add_argument('--ranges', default=[], nargs="+")
+parser_dependence.add_argument('--params', default=[], nargs="+")
+
+parser_compare = subparsers.add_parser('compare')
+parser_compare.add_argument('ref')
+parser_compare.add_argument('--base', default='master')
+parser_compare.add_argument('--output', default='diff_')
+parser_compare.add_argument('--count', default=1, type=int)
+parser_compare.add_argument('--fields', default=['score'], nargs='+')
+parser_compare.add_argument('--tasks', default=None, type=int, nargs="+")
+parser_compare.add_argument('--params', default=[], nargs="+")
 
 args = parser.parse_args()
 
@@ -30,13 +62,21 @@ try:
 except Exception as e:
  	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, working_dir=args.working_dir, cache=args.cache)
 
-if args.action == "annotate":
+
+if args.action == "run":
+	t.run(args.task, params=args.params, print_info=True)
+
+elif args.action == "annotate":
 	if isinstance(t,relentless.GitTester):
-		t.annotate_commits(args.count, output=args.output, branches=args.branches, since=args.since)
+		t.annotate_commits(count=args.count, output=args.output, branches=args.branches, since=args.since)
 	else:
 		raise ValueError("Annotation is only available for projects stored in git repositories.")
-elif args.action == 'optimise':
-	raise ValueError("Optimisation is not yet fully baked.")
-	#t.annotate_commits(args.count, output=args.output, branches=args.branches, since=args.since)
-elif args.action == 'iterate':
-	raise ValueError("Optimisation is not yet fully baked.")
+
+elif args.action == "dependence":
+	t.plot_dependence(output=args.output, count=args.count, tasks=args.tasks, ranges=get_params(args.ranges), params=get_params(args.params))
+
+elif args.action == "compare":
+	if isinstance(t,relentless.GitTester):
+		t.compare(ref=args.ref, base=args.base, output=args.output, count=args.count, fields=args.fields, tasks=args.tasks, params=get_params(args.params))
+	else:
+		raise ValueError("Annotation is only available for projects stored in git repositories.")

@@ -29,7 +29,7 @@ def get_commits_by_branch(repo='.',branches=None):
 
 
 
-def annotate(output='history', repo='.', annotate={}, branches=None):
+def annotate(output='history', repo='.', annotate={}, branches=None, cwd=None):
     f = open(output+'.tex','w')
 
     header = r"""
@@ -121,4 +121,6 @@ def annotate(output='history', repo='.', annotate={}, branches=None):
 
     f.close()
 
-    subprocess.Popen(['xelatex',output], cwd=os.path.dirname(output)).wait()
+    if cwd is None:
+        cwd = os.path.dirname(output)
+    subprocess.Popen(['xelatex',output], cwd=cwd).wait()

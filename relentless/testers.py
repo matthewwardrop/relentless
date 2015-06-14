@@ -10,6 +10,12 @@ from .computations import *
 
 from multiprocessing import Lock
 
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+from mplstyles import SampleStyle, contour_image
+
+
 class Tester(object):
 
     computation_types = {
@@ -88,11 +94,14 @@ class Tester(object):
     def _cleanup(self):
         pass
 
-    def run(self,task=0,params={}):
+    def run(self,task=0,params={},print_info=False):
         task = int(task)
         result = self.cache(task=task, params=params)
         if result is None:
             result = self.cache(value=self.computation.run(task,params),task=task,params=params)
+        if print_info:
+            for item in result.info.items():
+                print "%s: %s" % item
         return result
 
     def score(self, *args, **kwargs):
@@ -123,6 +132,31 @@ class Tester(object):
         for index,data in iterator:
             results[index] = data
         return results
+
+    def plot_dependence(self, output="dependence", **kwargs):
+        ranges = kwargs.get('ranges',[])
+        if len(ranges) == 0:
+            raise ValueError("Need to iterate over some value.")
+
+        results = np.sum(self.iterate_score(**kwargs),axis=0)
+        style = SampleStyle()
+        with style:
+            if len(results.shape) == 1:
+                var = ranges[1].keys()[0]
+                xs = self.p.range(var, **ranges[0])
+                plt.plot([xs, results])
+                plt.xlabel(var)
+            elif len(results.shape) == 2:
+                var_x = ranges[1].keys()[0]
+                var_y =  ranges[2].keys()[0]
+                xs = self.p.range(var_x, **ranges[1])
+                ys = self.p.range(var_y, **ranges[2])
+                contour_image(xs, ys, results, cguides=True, label=True, cmap=plt.get_cmap('hsv'))
+                plt.xlabel(var_x)
+                plt.ylabel(var_y)
+            else:
+                raise ValueError("Cannot plot more than 2 dimensions.")
+            style.savefig(os.path.join(self.project_dir,output+".pdf"))
 
     def optimise(self,opt_params=[],count=1,tasks=None,params={},opt_opts={}):
         '''
@@ -225,51 +259,27 @@ class GitTester(Tester):
 
         annotate(output=os.path.join(self.project_dir,output), repo=self.project_dir, annotate=annotations, branches=branches)
 
+    def compare(self, ref, base='master', output="diffs_", count=1,fields=['score'],tasks=None,params={},iter_opts={}):
+        from .utils.plot_diff import plot_diff
 
-#print t.iterate_score(10,params={'x':1,'y':1.0000000149011612})
-# print t.optimise(['x','y'],count=1,params={'x':1,'y':1})
+        self.ref = ref
+        results_new = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
+        self.ref = base
+        results_old = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
 
+        def get_map(field):
+            def f(a):
+                try:
+                    return a.info[field]
+                except:
+                    return getattr(a,field)
+            return np.vectorize(f)
 
-# Something like this will find the first commit:
-#
-# x = Repo('.')
-# print list(x.get_walker(include=[x.head()]))[-1].commit
-#
-# (Note that this will use O(n) memory for large repositories, use an iterator to get around that)
+        tasks = get_map('task')(results_new).flatten().tolist()
 
+        for field in fields:
+            plot_diff(output=os.path.join(self.project_dir, output+field), new=get_map(field)(results_new).astype(float), old=get_map(field)(results_old).astype(float), tasks=tasks, maximise=field not in ComputationResult.minimise)
 
-
-# Using pure Git-Python, it can also be done. I have not found a way to identify a set of kwargs that would do it in one go either. But one can simply construct a set of shas of the master branch, then use iter_commits on the to-be-examined branch in order to find the first one that doesn't appear in the parent:
-#
-# from git import *
-#
-# repo_path = '.'
-# repo = Repo(repo_path)
-# parent_branch = repo.branches.master
-# examine_branch = repo.branches.test_feature_branch
-#
-# other_shas = set()
-# for parent_commit in repo.iter_commits(rev=parent_branch):
-#     other_shas.add(parent_commit.hexsha)
-# for commit in repo.iter_commits(rev=examine_branch):
-#     if commit.hexsha not in other_shas:
-#         first_commit = commit
-#
-# print '%s by %s: %s' % (first_commit.hexsha[:7],
-#         first_commit.author.name, first_commit.summary)
-#
-# And if you really want to be sure to exclude all commits on all other branches, you can wrap that first for-loop in another for-loop over repo.branches:
-#
-# other_shas = set()
-# for branch in repo.branches:
-#     if branch != examine_branch:
-#         for commit in repo.iter_commits(rev=branch):
-#             other_shas.add(commit.hexsha)
-#
-#     Caveat 1: the 2nd approach shows the first commit that does not appear on any other branch, which is not necessarily the first commit on this branch. If feat_b is branched off from feat_a, which comes from master, then this will show the first commit on feat_a after feat_b has been branched off: the rest of feat_a's commits are already on feat_b.
-#     Caveat 2: git rev-list and both of these solutions only work as long as the branch isn't merged back into master yet. You're literally asking it to list all commits on this branch but not on the other.
-#     Remark: the 2nd approach is overkill and takes a fair bit more time to complete. A better approach is to limit the other branches to a list of known merge branches, should you have more than just master.
-#
 
 #t = Tester('defense',MarathonComputation)
 #print plot_progress(t)

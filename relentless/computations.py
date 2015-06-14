@@ -32,7 +32,7 @@ class Computation(object):
     def process_result(self, result):
         for m in re.finditer('([A-Za-z0-9]+) = ([A-Za-z0-9]+)', result.stdout+result.stderr):
             gs = m.groups()
-            result.info[gs[0]] = gs[1]
+            result.info[gs[0].lower()] = gs[1]
         return result
 
     def _run(self, task, params, *args, **kwargs):
@@ -83,20 +83,32 @@ class MarathonComputation(SimpleComputation):
 
 class ComputationResult(object):
 
+    minimise = ['runtime']
+
     def __init__(self, task, params, stdout, stderr, runtime):
-        self.stdout = stdout
-        self.stderr = stderr
-        self.params = params
-        self.task = task
-        self.runtime = runtime
         self.info = {}
+        self(stdout=stdout,
+            stderr=stderr,
+            params=params,
+            task=task,
+            runtime = runtime)
+
+    def __call__(self, *args, **kwargs):
+        for key, value in kwargs.items():
+            self.info[key] = value
+        r = []
+        for arg in args:
+            return self.info[arg]
+
+    def __getattr__(self, key):
+        if key != 'info' and key in self.info:
+            return self.info[key]
+        raise AttributeError()
 
     @property
     def score(self):
         if 'score' in self.info:
             return float(self.info['score'])
-        if 'Score' in self.info:
-            return float(self.info['Score'])
         return -1
         #raise ValueError("No score available in the info dictionary.")
 
