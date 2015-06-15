@@ -47,7 +47,7 @@ class Computation(object):
         p = subprocess.Popen(*args, **defaults)
         p.wait()
         result = ComputationResult(task, params, runtime=time.time()-t, *p.communicate())
-        result.returncode = p.returncode
+        result(returncode=p.returncode)
         if result.returncode != 0:
             print result.stdout
             print result.stderr

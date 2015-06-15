@@ -265,6 +265,7 @@ class GitTester(Tester):
     def _cleanup(self):
         if getattr(self, '_GitTester__ref', None) is not None:
             d = self.get_repo_dir()
+            _repo_path = None
             if os.path.exists(d):
                 shutil.rmtree(d)
 
