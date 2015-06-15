@@ -33,8 +33,7 @@ class Computation(object):
         raise NotImplementedError()
 
     def process_result(self, result):
-        for m in re.finditer('([A-Za-z0-9]+) = ([A-Za-z0-9]+)', result.stdout+result.stderr):
-            gs = m.groups()
+        for m in re.finditer('([A-Za-z0-9 ]+) = ([A-Za-z0-9]+)', result.stdout+result.stderr):
             result.info[gs[0].lower()] = gs[1]
         return result
 
