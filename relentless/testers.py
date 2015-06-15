@@ -223,6 +223,7 @@ class Tester(object):
 class GitTester(Tester):
 
     def init(self, ref='master'):
+        self.__project_repo = git.Repo(self.project_dir)
         self.ref = ref
 
     @property
@@ -232,14 +233,20 @@ class GitTester(Tester):
     def ref(self, ref):
         self.cleanup()
         self.__ref = ref
-        self.computation
 
     def get_repo_dir(self):
-        return self.path(self.ref)
+        return self.path('checkout')#self.path(self.ref)
 
     def get_cache_key(self, task=0, params={}):
-        ref = str(self.__repo.commit().hexsha)
+        ref = str(self.__project_repo.commit(self.ref).hexsha)
         return '%s_%s'%(ref,task)
+
+    def __get_ref(self, repo, ref):
+        try:
+            repo.commit(ref)
+            return ref
+        except:
+            return repo.commit('origin/'+ref).hexsha
 
     def get_computation(self):
         d = self.get_repo_dir()
@@ -248,7 +255,7 @@ class GitTester(Tester):
             self.__repo.remotes.origin.pull()
         else:
             self.__repo = git.Repo(self.project_dir).clone(d)
-        self.__repo.git.checkout(self.ref)
+        self.__repo.git.checkout(self.__get_ref(self.__repo, self.ref))
         return self.computation_type(self.project, directory=d, wrapper=self.computation_wrapper)
 
     def _cleanup(self):
@@ -258,10 +265,10 @@ class GitTester(Tester):
                 shutil.rmtree(d)
 
     def annotate_commits(self, count=1, output='history', branches=None, since=None, iter_opts={}):
-        from .utils.git_history import annotate, get_commits_by_branch
+        from .utils.git_history import GitAnnotate, get_commits_by_branch
 
         annotations = {}
-        branches, commits, all_commits = get_commits_by_branch(self.project_dir, branches=branches)
+        branches, commits, all_commits = get_commits_by_branch(repo=self.project_dir, branches=branches)
 
         going = False
         if since is None:
@@ -286,10 +293,10 @@ class GitTester(Tester):
         for commit, score in annotations.items():
             annotations[commit] = (scale(score), str(score))
 
-        annotate(output=os.path.join(self.project_dir,output), repo=self.project_dir, annotate=annotations, branches=branches)
+        GitAnnotate(output=os.path.join(self.project_dir,output), repo=self.project_dir, annotate=annotations, branches=branches)
 
     def compare(self, ref, base='master', output="diffs_", count=1,fields=['score'],tasks=None,params={},iter_opts={}):
-        from .utils.plot_diff import plot_diff
+        from .utils.plot_diff import PlotDiff
 
         self.ref = ref
         results_new = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
@@ -307,7 +314,7 @@ class GitTester(Tester):
         tasks = get_map('task')(results_new).flatten().tolist()
 
         for field in fields:
-            plot_diff(output=os.path.join(self.project_dir, output+field), new=get_map(field)(results_new).astype(float), old=get_map(field)(results_old).astype(float), tasks=tasks, maximise=field not in ComputationResult.minimise)
+            PlotDiff(output=os.path.join(self.project_dir, output+field), new=get_map(field)(results_new).astype(float), old=get_map(field)(results_old).astype(float), tasks=tasks, maximise=field not in ComputationResult.minimise)
 
 
 #t = Tester('defense',MarathonComputation)
