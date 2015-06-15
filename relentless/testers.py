@@ -254,7 +254,7 @@ class GitTester(Tester):
 
     def get_computation(self):
         d = self.get_repo_dir()
-        if os.path.exists(d):
+        if os.path.exists(d) and os.path.exists(os.path.join(d,'.git')):
             self.__repo = git.Repo(d)
             self.__repo.remotes.origin.pull()
         else:
