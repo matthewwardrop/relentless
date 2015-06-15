@@ -11,6 +11,7 @@ setup(name='relentless',
       #package_dir={'parameters':'.'},
       #download_url='https://github.com/matthewwardrop/python-relentless',
       packages=['relentless','relentless.utils'],
+      package_data = {'relentless': ['Makefile']},
       requires=['parampy','gitpython','numpy'],
       scripts=['scripts/relentless']
 
