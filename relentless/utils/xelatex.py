@@ -29,3 +29,4 @@ class XeLaTeX(object):
 		process = subprocess.Popen(['xelatex','output'], cwd=self.tmpdir)
 		if process.wait() == 0:
 			shutil.copyfile(os.path.join(self.tmpdir, 'output.pdf'), self.dest+".pdf")
+		shutil.rmtree(self.tmpdir)
