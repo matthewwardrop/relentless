@@ -243,7 +243,7 @@ class GitTester(Tester):
 
     def get_cache_key(self, task=0, params={}):
         ref = str(self.__project_repo.commit(self.ref).hexsha)
-        return '%s_%s'%(ref,task)
+        return '%s_%d'%(ref,task)
 
     def __get_ref(self, repo, ref):
         try:
