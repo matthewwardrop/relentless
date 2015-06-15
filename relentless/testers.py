@@ -10,6 +10,8 @@ from .computations import *
 
 from multiprocessing import Lock
 
+import tempfile
+
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
@@ -235,7 +237,9 @@ class GitTester(Tester):
         self.__ref = ref
 
     def get_repo_dir(self):
-        return self.path('checkout')#self.path(self.ref)
+        if getattr(self,'_repo_path',None) is None:
+            self._repo_path = tempfile.mkdtemp()
+        return self._repo_path # self.path('checkout')#self.path(self.ref)
 
     def get_cache_key(self, task=0, params={}):
         ref = str(self.__project_repo.commit(self.ref).hexsha)
