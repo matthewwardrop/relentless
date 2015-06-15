@@ -7,9 +7,12 @@ from abc import abstractmethod, ABCMeta
 
 class Computation(object):
 
-    def __init__(self, project, directory=".", **kwargs):
+    def __init__(self, project, working_dir=".", src_dir=None, **kwargs):
         self.project = project
-        self.directory = os.path.abspath(directory)
+        self.working_dir = os.path.abspath(working_dir)
+        if src_dir is None:
+            src_dir = self.working_dir
+        self.src_dir = os.path.abspath(src_dir)
         self.compiled=Value('i',0)
         self.lock = Lock()
         self.init(**kwargs)
@@ -45,6 +48,9 @@ class Computation(object):
         p.wait()
         result = ComputationResult(task, params, runtime=time.time()-t, *p.communicate())
         result.returncode = p.returncode
+        if result.returncode != 0:
+            print result.stdout
+            print result.stderr
         return self.process_result(result)
 
 class SimpleComputation(Computation):
@@ -53,8 +59,8 @@ class SimpleComputation(Computation):
         self.wrapper = wrapper
 
     def _compile(self):
-        f = open(os.path.join(self.directory, 'compile.log'),'w')
-        compile = subprocess.Popen(["make","-f","~/.home_resources/Makefile",os.path.basename(self.project)],cwd=self.directory, stdout=f, stderr=f)
+        f = open(os.path.join(self.working_dir, 'compile.log'),'w')
+        compile = subprocess.Popen(["make","-f","~/.home_resources/Makefile",os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
         compile.wait()
         f.close()
         if compile.returncode != 0:
@@ -66,19 +72,22 @@ class SimpleComputation(Computation):
             env["RELENTLESS_%s" % variable] = str(params[variable])
 
         if self.wrapper is None:
-            cmd = [os.path.join(self.directory, self.project)]
+            cmd = [os.path.join(self.working_dir, self.project)]
         else:
-            command = self.wrapper % {'project': os.path.join(self.directory, self.project), 'task': task}
+            command = self.wrapper % {  'project': os.path.join(self.working_dir, self.project),
+                                        'src_dir': self.src_dir,
+                                        'working_dir': self.working_dir,
+                                        'task': task}
             cmd = command.split()
 
-        return self._run(task, params, cmd, env=env, cwd=self.directory)
+        return self._run(task, params, cmd, env=env, cwd=self.working_dir)
 
 
 class MarathonComputation(SimpleComputation):
 
     def init(self, wrapper=None):
         if wrapper is None:
-            wrapper = "java -jar ../../tester.jar -exec %(project)s -seed %(task)s -novis"
+            wrapper = "java -jar %(src_dir)s/tester.jar -exec %(project)s -seed %(task)s -novis"
         self.wrapper = wrapper
 
 class ComputationResult(object):

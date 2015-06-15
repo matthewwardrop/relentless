@@ -99,7 +99,7 @@ class Tester(object):
             return self._computation
 
     def get_computation(self):
-        return self.computation_type(self.project, directory=self.project_dir, wrapper=self.computation_wrapper)
+        return self.computation_type(self.project, working_dir=self.project_dir, wrapper=self.computation_wrapper)
 
     def cleanup(self):
         self._computation = None
@@ -260,7 +260,7 @@ class GitTester(Tester):
         else:
             self.__repo = git.Repo(self.project_dir).clone(d)
         self.__repo.git.checkout(self.__get_ref(self.__repo, self.ref))
-        return self.computation_type(self.project, directory=d, wrapper=self.computation_wrapper)
+        return self.computation_type(self.project, working_dir=d, src_dir=self.project_dir, wrapper=self.computation_wrapper)
 
     def _cleanup(self):
         if getattr(self, '_GitTester__ref', None) is not None:
