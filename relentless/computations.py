@@ -60,11 +60,14 @@ class SimpleComputation(Computation):
 
     def _compile(self):
         f = open(os.path.join(self.working_dir, 'compile.log'),'w')
-        compile = subprocess.Popen(["make","-f","~/.home_resources/Makefile",os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
+        if os.path.exists(os.path.join(self.working_dir, 'Makefile')):
+            subprocess.Popen(["make",os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
+        else:
+            compile = subprocess.Popen(["make","-f",os.path.join(os.path.dirname(os.path.abspath(__file__)),'Makefile'),os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
         compile.wait()
         f.close()
         if compile.returncode != 0:
-            raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree.")
+            raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree at %s." % os.path.join(self.working_dir, 'compile.log'))
 
     def run(self,task=0,params={}):
         env = {}
