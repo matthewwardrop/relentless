@@ -20,32 +20,44 @@ class Tester(object):
 
     computation_types = {
         'simple': SimpleComputation,
-        'marathon': MarathonComputation
+        'SimpleComputation': SimpleComputation,
+        'marathon': MarathonComputation,
+        'MarathonComputation': MarathonComputation
     }
 
-    def __init__(self, project, computation_type=SimpleComputation, computation_wrapper=None, working_dir='_relentless', cache=True, **kwargs):
-        if type(computation_type) is str:
-            try:
-                computation_type = self.computation_types[computation_type]
-            except:
-                raise ValueError("Invalid computation type: %s" % computation_type)
-        if not issubclass(computation_type, Computation):
-            raise ValueError("Invalid computation_type provided.")
-        self.computation_type = computation_type
-        self.computation_wrapper = computation_wrapper
-
-        self.lock = Lock()
-
+    def __init__(self, project, computation_type=None, computation_wrapper=None, working_dir='_relentless', cache=True, auto_profile=True, **kwargs):
+        self.project = os.path.basename(project)
         self.project_dir = os.path.abspath(os.path.dirname(project))
         self.working_dir = working_dir
         if not os.path.exists(self.path("")):
             os.makedirs(self.path(""))
 
-        self.project = os.path.basename(project)
+        if auto_profile:
+            self.config = self.load_config()
+        else:
+            self.config = {}
 
+        self.__set_attribute('computation_type', computation_type, default=SimpleComputation)
+
+        if type(self.computation_type) is str:
+            try:
+                self.computation_type = self.computation_types[self.computation_type]
+            except:
+                raise ValueError("Invalid computation type: %s" % self.computation_type)
+        if not issubclass(self.computation_type, Computation):
+            raise ValueError("Invalid computation_type provided.")
+
+        self.__set_attribute('computation_wrapper',computation_wrapper)
+
+        self.lock = Lock()
         self.p = parampy.Parameters()
 
+        self.__kwargs = kwargs
+
         self.init(**kwargs)
+
+        self.save_config()
+
 
     def path(self, filename):
         return os.path.join(self.project_dir, self.working_dir, filename)
@@ -190,6 +202,23 @@ class Tester(object):
 
     def __del__(self):
         self.cleanup()
+
+    def save_config(self):
+        s = shelve.open(self.path('tester_init.config'), protocol=0)
+        s['config'] = self.config
+        s.close()
+
+    def load_config(self):
+        s = shelve.open(self.path('tester_init.config'), protocol=0)
+        config = s.get('config',{})
+        s.close()
+        return config
+
+    def __set_attribute(self, attr, value, default=None):
+        if value is None:
+            value = self.config.get(attr,default)
+        setattr(self, attr, value)
+        self.config[attr] = value
 
 class GitTester(Tester):
 

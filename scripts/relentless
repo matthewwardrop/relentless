@@ -21,7 +21,7 @@ parser.add_argument('project', type=str, help='The project to be analysed by rel
 #                   help='an integer for the accumulator')
 
 parser.add_argument('--working-dir', dest='working_dir', default="_relentless")
-parser.add_argument('--type', default="simple")
+parser.add_argument('--type', default=None)
 parser.add_argument('--wrapper', default=None)
 parser.add_argument('--ref', default="master")
 parser.add_argument('--cache', default=True, type=bool)
