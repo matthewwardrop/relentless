@@ -70,7 +70,7 @@ class SimpleComputation(Computation):
             raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree at %s." % os.path.join(self.working_dir, 'compile.log'))
 
     def run(self,task=0,params={}):
-        env = {}
+        env = os.environ.copy()
         for variable in params:
             env["RELENTLESS_%s" % variable] = str(params[variable])
 
