@@ -51,6 +51,8 @@ class Tester(object):
 
         self.__set_attribute('computation_wrapper',computation_wrapper)
 
+        self.__cache = cache
+
         self.lock = Lock()
         self.p = parampy.Parameters()
 
@@ -65,10 +67,10 @@ class Tester(object):
         return os.path.join(self.project_dir, self.working_dir, filename)
 
     def init(self):
-        pass
+        self.__cache = False # Cache does not make sense outside of a git repository where things can remain the same.
 
     def cache(self, value=None, task=0, params={}):
-        if len(params) > 0:
+        if not self.__cache or len(params) > 0:
             return value
         s = shelve.open(self.path('tester_cache.cache'))
         try:
