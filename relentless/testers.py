@@ -132,6 +132,13 @@ class Tester(object):
             return r.score
         return np.vectorize(scores)(results).astype(float)
 
+    def __prepare_iterate(self, tasks, params={}):
+        # Make sure we have compiled before the fork in ranges_iterator
+        for task in tasks:
+            if self.cache(task=task, params=params) is None:
+                self.computation
+                return
+
     def iterate(self,count=1,tasks=None,ranges=None,params={},iter_opts={}):
         if ranges is None:
             ranges = []
@@ -140,7 +147,9 @@ class Tester(object):
             return self.run(task=task, params=params)
         if type(ranges) is dict:
             ranges = [ranges]
-        ranges.insert(0,{'task':self.__tasks(count, tasks)})
+        tasks = self.__tasks(count, tasks)
+        ranges.insert(0,{'task':tasks})
+        self.__prepare_iterate(tasks, params=params)
         iterator = self.p.ranges_iterator(ranges, params=params, function=f, **iter_opts)
         results = np.empty(iterator.ranges_eval.shape, dtype=object)
         for index,data in iterator:
