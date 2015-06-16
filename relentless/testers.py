@@ -133,7 +133,7 @@ class Tester(object):
         return np.vectorize(scores)(results).astype(float)
 
     def __prepare_iterate(self, tasks, params={}):
-        # Make sure we have compiled before the fork in ranges_iterator
+        # Make sure we have initialised the computation before the fork in ranges_iterator
         for task in tasks:
             if self.cache(task=task, params=params) is None:
                 self.computation
