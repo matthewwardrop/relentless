@@ -56,7 +56,7 @@ class GitAnnotate(XeLaTeX):
             i = branches.index(branch)
             rel, value = annotate.get(commit.hexsha,(0,""))
 
-            output['branches'].append( r"\commit{%d}{%d}{%s}{%s}{%f}{%s}" % (i, d, commit.hexsha[:7], commit.message, rel, value) )
+            output['commits'].append( r"\commit{%d}{%d}{%s}{%s}{%f}{%s}" % (i, d, commit.hexsha[:7], commit.message, rel, value) )
         output['commits'] = '\n'.join(output['commits'])
 
         output['connects'] = []

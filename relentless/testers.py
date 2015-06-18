@@ -51,7 +51,7 @@ class Tester(object):
 
         self.__set_attribute('computation_wrapper',computation_wrapper)
 
-        self.__cache = cache
+        self.__use_cache = cache
 
         self.lock = Lock()
         self.p = parampy.Parameters()
@@ -67,27 +67,27 @@ class Tester(object):
         return os.path.join(self.project_dir, self.working_dir, filename)
 
     def init(self):
-        self.__cache = False # Cache does not make sense outside of a git repository where things can remain the same.
+        self.__use_cache = False # Cache does not make sense outside of a git repository where things can remain the same.
 
     def cache(self, value=None, task=0, params={}):
-        if not self.__cache or len(params) > 0:
+        if not self.__use_cache or len(params) > 0:
             return value
-        s = shelve.open(self.path('tester_cache.cache'))
+
+        if getattr(self,'_Tester__cache',None) is None:
+            self.__cache = shelve.open(self.path('tester_cache.cache'))
         try:
             key = self.get_cache_key(task=task, params=params)
             if value is None:
-                if key in s.keys():
-                    return s[key]
-                return None
+                return self.__cache.get(key,None)
             else:
-                s[key] = value
-                return value
+                with self.lock:
+                    self.__cache[key] = value
+                    self.__cache.sync()
+                    return value
         except ValueError:
             return value
         except Exception, e:
             raise e
-        finally:
-            s.close()
 
     def get_cache_key(self, task=0, params={}):
         return str(task)
@@ -136,10 +136,12 @@ class Tester(object):
 
     def __prepare_iterate(self, tasks, params={}):
         # Make sure we have initialised the computation before the fork in ranges_iterator
+        # Return True if all done
         for task in tasks:
             if self.cache(task=task, params=params) is None:
                 self.computation
-                return
+                return False
+        return True
 
     def iterate(self,count=1,tasks=None,ranges=None,params={},iter_opts={}):
         if ranges is None:
@@ -151,7 +153,9 @@ class Tester(object):
             ranges = [ranges]
         tasks = self.__tasks(count, tasks)
         ranges.insert(0,{'task':tasks})
-        self.__prepare_iterate(tasks, params=params)
+        if self.__prepare_iterate(tasks, params=params):
+            iter_opts['nprocs'] = 1
+            iter_opts['progress'] = False
         iterator = self.p.ranges_iterator(ranges, params=params, function=f, **iter_opts)
         results = np.empty(iterator.ranges_eval.shape, dtype=object)
         for index,data in iterator:
@@ -215,6 +219,7 @@ class Tester(object):
 
     def __del__(self):
         self.cleanup()
+        self.__cache.close()
 
     def save_config(self):
         s = shelve.open(self.path('tester_init.config'), protocol=0)
