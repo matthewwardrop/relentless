@@ -281,7 +281,7 @@ class GitTester(Tester):
                 shutil.rmtree(d)
 
     def annotate_commits(self, count=1, output='history', branches=None, since=None, iter_opts={}):
-        from .utils.git_history import GitAnnotate, get_commits_by_branch
+        from .utils import GitAnnotate, get_commits_by_branch
 
         annotations = {}
         branches, commits, all_commits = get_commits_by_branch(repo=self.project_dir, branches=branches)
@@ -312,7 +312,7 @@ class GitTester(Tester):
         GitAnnotate(output=os.path.join(self.project_dir,output), repo=self.project_dir, annotate=annotations, branches=branches)
 
     def compare(self, ref, base='master', output="diffs_", count=1,fields=['score'],tasks=None,params={},iter_opts={}):
-        from .utils.plot_diff import PlotDiff
+        from .utils import DiffArray
 
         self.ref = ref
         results_new = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
@@ -330,7 +330,7 @@ class GitTester(Tester):
         tasks = get_map('task')(results_new).flatten().tolist()
 
         for field in fields:
-            PlotDiff(output=os.path.join(self.project_dir, output+field), new=get_map(field)(results_new).astype(float), old=get_map(field)(results_old).astype(float), tasks=tasks, maximise=field not in ComputationResult.minimise)
+            DiffArray(output=os.path.join(self.project_dir, output+field), new=get_map(field)(results_new).astype(float), old=get_map(field)(results_old).astype(float), tasks=tasks, maximise=field not in ComputationResult.minimise)
 
 
 #t = Tester('defense',MarathonComputation)

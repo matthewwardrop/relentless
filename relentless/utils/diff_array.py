@@ -3,7 +3,7 @@ import subprocess
 import numpy as np
 from .xelatex import XeLaTeX
 
-class PlotDiff(XeLaTeX):
+class DiffArray(XeLaTeX):
 
 	def template(self):
 		with open(os.path.join(os.path.dirname(__file__),'templates','diff_array.tex')) as f:
