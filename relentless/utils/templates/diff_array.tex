@@ -1,0 +1,30 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage{fancyvrb}
+\usetikzlibrary{calc}
+\usetikzlibrary{positioning}
+\usepackage{filecontents}
+
+\newcommand{\enablechar}[1]{
+	\AtBeginDocument{
+		\catcode#1=12
+		\begingroup\lccode`~=#1%%
+		\lowercase{\endgroup\let~}\sb
+	}
+}
+\enablechar{`_}
+\enablechar{`^}
+
+\usepackage{adjustbox}
+\newcommand{\adjsizetonode}{%%
+	\adjustbox{varwidth={5cm}\centering,keepaspectratio,clip=true,max totalsize={.8\dimexpr\pgfkeysvalueof{/pgf/minimum width}\relax}{.8\dimexpr\pgfkeysvalueof{/pgf/minimum height}\relax}}%%
+}
+
+\begin{document}
+
+	\begin{tikzpicture}
+		\tikzstyle{commit}=[draw,rectangle,fill=blue!80,inner sep=0pt,minimum width=0.9cm,minimum height=0.9cm,inner sep=1mm, rounded corners=3pt, align=center]
+		%(summary)s
+		%(elements)s
+	\end{tikzpicture}
+\end{document}

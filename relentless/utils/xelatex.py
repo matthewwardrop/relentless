@@ -11,21 +11,22 @@ class XeLaTeX(object):
 
 		self.dest = output
 
-		self.process(**kwargs)
+		self.output( self.template() % self.process(**kwargs) )
 
 		self.compile()
+
+	def template(self):
+		raise NotImplementedError()
 
 	def process(self, **kwargs):
 		raise NotImplementedError()
 
-	@property
-	def output(self):
-		if getattr(self,'_output',None) is None:
-			self._output = open(os.path.join(self.tmpdir, 'output.tex'),'w')
-		return self._output
+	def output(self, content):
+		f = open(os.path.join(self.tmpdir, 'output.tex'),'w')
+		f.write(content)
+		f.close()
 
 	def compile(self):
-		self._output.close()
 		process = subprocess.Popen(['xelatex','output'], cwd=self.tmpdir)
 		if process.wait() == 0:
 			shutil.copyfile(os.path.join(self.tmpdir, 'output.pdf'), self.dest+".pdf")

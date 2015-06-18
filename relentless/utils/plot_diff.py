@@ -5,42 +5,19 @@ from .xelatex import XeLaTeX
 
 class PlotDiff(XeLaTeX):
 
+	def template(self):
+		with open(os.path.join(os.path.dirname(__file__),'templates','diff_array.tex')) as f:
+			return f.read()
+
 	def process(self, output='diff', new=None, old=None, tasks=None, columns=10, maximise=True):
 
 		if new is None or old is None:
 			raise ValueError("new and old must both be numpy arrays of the same dimension")
 
-		header = r"""
-		\documentclass{standalone}
-		\usepackage{tikz}
-		\usepackage{fancyvrb}
-		\usetikzlibrary{calc}
-		\usetikzlibrary{positioning}
-		\usepackage{filecontents}
-
-		\usepackage{adjustbox}
-		\newcommand{\adjsizetonode}{%
-		  \adjustbox{varwidth={5cm}\centering,keepaspectratio,clip=true,max totalsize={.8\dimexpr\pgfkeysvalueof{/pgf/minimum width}\relax}{.8\dimexpr\pgfkeysvalueof{/pgf/minimum height}\relax}}%
-		}
-
-		\begin{document}
-
-			\begin{tikzpicture}
-				\tikzstyle{commit}=[draw,rectangle,fill=blue!80,inner sep=0pt,minimum width=0.9cm,minimum height=0.9cm,inner sep=1mm, rounded corners=3pt, align=center]
-			"""
-
-		middle = r"""
-			\end{tikzpicture}
-		"""
-
-		footer = """
-		\end{document}
-		"""
+		output = {}
 
 		lnew = new.flatten()
 		lold = old.flatten()
-
-		self.output.write(header)
 
 		diffs = []
 		r = new - old
@@ -69,8 +46,9 @@ class PlotDiff(XeLaTeX):
 			avg_improvement += rel
 		avg_improvement /= len(diffs)
 
-		self.output.write(r"	\node at (%.1f, 1) {Best: %.3f | Worst: %.3f | Avg: %.3f};" % (float(columns-1)/2, max_improvement, max_regression, avg_improvement))
+		output['summary'] = r"	\node at (%.1f, 1) {Best: %.3f | Worst: %.3f | Avg: %.3f};" % (float(columns-1)/2, max_improvement, max_regression, avg_improvement)
 
+		output['elements'] = []
 		for count, (index, rel) in enumerate(diffs):
 			rel /= max_diff
 			if type(index) != tuple:
@@ -81,12 +59,11 @@ class PlotDiff(XeLaTeX):
 				bgcolor = "green" if rel >=0 else "red"
 			else:
 				bgcolor = "red" if rel >=0 else "green"
-			self.output.write(r"""	\node[commit, %s, fill=%s!%s] at (%s) {\adjsizetonode{
+			output['elements'].append(r"""	\node[commit, %s, fill=%s!%s] at (%s) {\adjsizetonode{
 				{\fontsize{5}{5}\selectfont %.2f\par}
 				{\fontsize{12}{12}\selectfont\bf %d\par}
 				{\fontsize{5}{8}\selectfont %.2f\par}
 			}};""" % (textcolor, bgcolor, round(abs(rel)*100), ','.join(index), lnew[count], tasks[count], lold[count]) )
+		output['elements'] = '\n'.join(output['elements'])
 
-		self.output.write(middle)
-
-		self.output.write(footer)
+		return output

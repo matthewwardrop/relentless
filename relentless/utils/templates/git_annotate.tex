@@ -1,0 +1,66 @@
+\documentclass{standalone}
+\usepackage{tikz}
+\usepackage{fancyvrb}
+\usetikzlibrary{calc}
+\usetikzlibrary{positioning}
+\usepackage{filecontents}
+
+\newcommand{\enablechar}[1]{
+	\AtBeginDocument{
+		\catcode#1=12
+		\begingroup\lccode`~=#1
+		\lowercase{\endgroup\let~}\sb
+	}
+}
+\enablechar{`_}
+\enablechar{`^}
+
+\pgfmathsetmacro{\xscaling}{1.2}
+\pgfmathsetmacro{\yscaling}{2}
+\pgfmathsetmacro{\perfwidth}{3 em}
+\pgfmathsetmacro{\branchcount}{%(branchcount)d}
+\pgfmathsetmacro{\branchcountd}{\branchcount+1}
+\pgfmathsetmacro{\branchcountm}{\branchcount-1}
+\pgfmathsetmacro{\count}{%(commitcount)d}
+\pgfmathsetmacro{\countm}{\count-1}
+\pgfmathsetmacro{\perfbarwidth}{0.8 em}
+
+\newcommand\branch[2]{
+\node[branch] (#2) at (\xscaling * #1 em, \yscaling * \count em ) {#2};
+\node[branch,anchor=east] (#2) at (\xscaling * #1 em, -1*\yscaling em ) {#2};
+}
+\newcommand\commit[6]{
+\node[commit] (#3) at (\xscaling * #1 em, \yscaling * #2 em) {};
+\draw[solid, thick, black, line width=\perfbarwidth] (-\xscaling em, \yscaling * #2 em) -- (-\xscaling em - #5*\perfwidth, \yscaling * #2 em);
+\node[anchor=east] at (-\xscaling em - \perfwidth -\xscaling, \yscaling * #2 em) {#6};
+\node[clabel] at ($(#3 -| \xscaling*\branchcount em, 0)$) {\Verb!#3: #4!};
+}
+\newcommand\ghost[1]{\coordinate (#1);}
+\newcommand\connect[2]{\path (#1) to[out=90,in=-90] (#2);}
+
+\begin{document}
+  \begin{tikzpicture}
+    \tikzstyle{branch}=[rotate=90,anchor=west]
+    \tikzstyle{commit}=[draw,circle,fill=white,inner sep=0pt,minimum size=5pt]
+    \tikzstyle{perf}=[draw,circle,fill=black,inner sep=0pt,minimum size=3pt]
+    \tikzstyle{clabel}=[right,outer sep=1em]
+    \tikzstyle{every path}=[draw]
+
+    \foreach \x in {0,...,\branchcountm}{
+      \draw[dashed] (\xscaling*\x em,-1*\yscaling em) -- (\xscaling*\x em,\yscaling*\count em);
+    }
+    \draw[solid] (-\xscaling em,-1*\yscaling em) -- (-\xscaling em,\yscaling*\count em);
+    \draw[solid] (-\xscaling em - \perfwidth,-1*\yscaling em) -- (-\xscaling em - \perfwidth,\yscaling*\count em);
+
+    \foreach \y in {0,...,\countm}{
+      \draw[dashed] (-\xscaling em,\yscaling*\y em) -- (\xscaling*\branchcountd em,\yscaling*\y em);
+    }
+
+    %(branches)s
+
+    %(commits)s
+
+    %(connects)s
+
+  \end{tikzpicture}
+\end{document}
