@@ -193,17 +193,17 @@ class Tester(object):
         with style:
             if len(results.shape) == 1:
                 var = ranges[1].keys()[0]
-                xs = self.p.range(var, **ranges[0])
-                plt.plot([xs, results])
-                plt.xlabel(var)
+                xs = self.p.range(var, **ranges[1])
+                plt.plot(xs, results)
+                plt.xlabel(r"\verb!%s!" % var)
             elif len(results.shape) == 2:
                 var_x = ranges[1].keys()[0]
                 var_y =  ranges[2].keys()[0]
                 xs = self.p.range(var_x, **ranges[1])
                 ys = self.p.range(var_y, **ranges[2])
                 contour_image(xs, ys, results, cguides=True, label=True, cmap=plt.get_cmap('hsv'))
-                plt.xlabel(var_x)
-                plt.ylabel(var_y)
+                plt.xlabel(r"\verb!%s!" % var_x)
+                plt.ylabel(r"\verb!%s!" % var_y)
             else:
                 raise ValueError("Cannot plot more than 2 dimensions.")
             style.savefig(os.path.join(self.project_dir,output+".pdf"))
