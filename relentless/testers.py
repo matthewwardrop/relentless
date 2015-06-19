@@ -196,6 +196,7 @@ class Tester(object):
                 xs = self.p.range(var, **ranges[1])
                 plt.plot(xs, results)
                 plt.xlabel(r"\verb!%s!" % var)
+                plt.ylabel("Score")
             elif len(results.shape) == 2:
                 var_x = ranges[1].keys()[0]
                 var_y =  ranges[2].keys()[0]
