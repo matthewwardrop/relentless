@@ -80,7 +80,7 @@ except Exception as e:
 
 if args.action == "run":
 	for task in args.tasks:
-		t.iterate(task, params=get_params(args.params), print_info=args.print_info)
+		t.run(task, params=get_params(args.params), print_info=args.print_info)
 
 elif args.action == "annotate":
 	if isinstance(t,relentless.GitTester):
