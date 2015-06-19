@@ -147,18 +147,21 @@ class Tester(object):
         return True
 
     def iterate(self,count=1,tasks=None,ranges=None,params={},iter_opts={}):
-        if ranges is None:
-            ranges = []
-        def f(params):
-            task = int(params.pop('task'))
-            return self.run(task=task, params=params)
-        if type(ranges) is dict:
-            ranges = [ranges]
         tasks = self.__tasks(count, tasks)
-        ranges.insert(0,{'task':tasks})
         if self.__prepare_iterate(tasks, params=params, ranges=ranges):
             iter_opts['nprocs'] = 1
             iter_opts['progress'] = False
+
+        if ranges is None:
+            ranges = []
+        if type(ranges) is dict:
+            ranges = [ranges]
+        ranges.insert(0,{'task':tasks})
+
+        def f(params):
+            task = int(params.pop('task'))
+            return self.run(task=task, params=params)
+
         iterator = self.p.ranges_iterator(ranges, params=params, function=f, **iter_opts)
         results = np.empty(iterator.ranges_eval.shape, dtype=object)
         for index,data in iterator:
