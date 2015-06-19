@@ -316,8 +316,11 @@ class GitTester(Tester):
 
         GitAnnotate(output=os.path.join(self.project_dir,output), repo=self.project_dir, annotate=annotations, branches=branches)
 
-    def compare(self, ref, base='master', output="diffs_", count=1,fields=['score'],tasks=None,params={},iter_opts={}):
+    def compare(self, ref, base='master', output=None, count=1,fields=['score'],tasks=None,params={},iter_opts={}):
         from .utils import DiffArray
+
+        if output is None:
+            output = "(%s) <- (%s) " % (ref, base)
 
         self.ref = ref
         results_new = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
