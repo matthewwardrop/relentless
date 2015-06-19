@@ -134,9 +134,12 @@ class Tester(object):
             return r.score
         return np.vectorize(scores)(results).astype(float)
 
-    def __prepare_iterate(self, tasks, params={}):
+    def __prepare_iterate(self, tasks, params={}, ranges=None):
         # Make sure we have initialised the computation before the fork in ranges_iterator
         # Return True if all done
+        if ranges is not None:
+            self.computation
+            return False
         for task in tasks:
             if self.cache(task=task, params=params) is None:
                 self.computation
@@ -153,7 +156,7 @@ class Tester(object):
             ranges = [ranges]
         tasks = self.__tasks(count, tasks)
         ranges.insert(0,{'task':tasks})
-        if self.__prepare_iterate(tasks, params=params):
+        if self.__prepare_iterate(tasks, params=params, ranges=ranges):
             iter_opts['nprocs'] = 1
             iter_opts['progress'] = False
         iterator = self.p.ranges_iterator(ranges, params=params, function=f, **iter_opts)

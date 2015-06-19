@@ -9,10 +9,22 @@ import relentless
 
 def get_params(lparams):
 	params = {}
-	for param in lparams:
-		key,value = param.split("=")
-		params[key] = eval(value)
+	for param_set in lparams:
+		for param in param_set.split(';'):
+			key,value = param.split("=")
+			params[key] = eval(value)
 	return params
+
+def get_ranges(lranges):
+	ranges = []
+	for param_set in lranges:
+		params = {}
+		for param in param_set.split(';'):
+			key,value = param.split("=")
+			params[key] = eval(value)
+		ranges.append(params)
+	return ranges
+
 
 working_dir = "_relentless"
 
@@ -29,8 +41,9 @@ parser.add_argument('--cache', default=True, type=bool)
 subparsers = parser.add_subparsers(title='actions', description='The action to be performed by relentless.', dest='action')
 
 parser_run = subparsers.add_parser('run')
-parser_run.add_argument('task', default=0, type=int)
+parser_run.add_argument('tasks', default=0, type=int, nargs="*")
 parser_run.add_argument('--params', default=[], nargs="+")
+parser_run.add_argument('--print-info', dest='print_info', default=True, type=bool)
 
 parser_annotate = subparsers.add_parser('annotate')
 parser_annotate.add_argument('--output', default='history')
@@ -65,9 +78,9 @@ try:
 except Exception as e:
  	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, working_dir=working_dir, cache=args.cache)
 
-
 if args.action == "run":
-	t.run(args.task, params=get_params(args.params), print_info=True)
+	for task in args.tasks:
+		t.iterate(task, params=get_params(args.params), print_info=args.print_info)
 
 elif args.action == "annotate":
 	if isinstance(t,relentless.GitTester):
@@ -76,7 +89,7 @@ elif args.action == "annotate":
 		raise ValueError("Annotation is only available for projects stored in git repositories.")
 
 elif args.action == "dependence":
-	t.plot_dependence(output=args.output, count=args.count, tasks=args.tasks, ranges=get_params(args.ranges), params=get_params(args.params), iter_opts={'nprocs': args.nprocs})
+	t.plot_dependence(output=args.output, count=args.count, tasks=args.tasks, ranges=get_ranges(args.ranges), params=get_params(args.params), iter_opts={'nprocs': args.nprocs})
 
 elif args.action == "compare":
 	if isinstance(t,relentless.GitTester):
