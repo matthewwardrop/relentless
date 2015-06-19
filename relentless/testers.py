@@ -8,7 +8,8 @@ import parampy, numpy as np
 
 from .computations import *
 
-from multiprocessing import Lock
+from Queue import Empty as QueueEmpty
+from multiprocessing import Lock, Pipe, Queue as Queue, current_process
 
 import tempfile
 
@@ -62,6 +63,9 @@ class Tester(object):
 
         self.save_config()
 
+        self.__cache = shelve.open(self.path('tester_cache.cache'))
+        self.cache_queue = Queue()
+
 
     def path(self, filename):
         return os.path.join(self.project_dir, self.working_dir, filename)
@@ -73,21 +77,30 @@ class Tester(object):
         if not self.__use_cache or len(params) > 0:
             return value
 
-        if getattr(self,'_Tester__cache',None) is None:
-            self.__cache = shelve.open(self.path('tester_cache.cache'))
         try:
             key = self.get_cache_key(task=task, params=params)
             if value is None:
                 return self.__cache.get(key,None)
             else:
-                with self.lock:
+                if current_process().name == "MainProcess":
                     self.__cache[key] = value
                     self.__cache.sync()
-                    return value
+                else:
+                    self.cache_queue.put([key, value])
+                return value
         except ValueError:
             return value
         except Exception, e:
             raise e
+
+    def cache_sync(self):
+        while True:
+            try:
+                r = self.cache_queue.get_nowait()
+                self.__cache[r[0]] = r[1]
+            except QueueEmpty:
+                break
+        self.__cache.sync()
 
     def get_cache_key(self, task=0, params={}):
         return str(task)
@@ -148,6 +161,7 @@ class Tester(object):
 
     def iterate(self,count=1,tasks=None,ranges=None,params={},iter_opts={}):
         tasks = self.__tasks(count, tasks)
+
         if self.__prepare_iterate(tasks, params=params, ranges=ranges):
             iter_opts['nprocs'] = 1
             iter_opts['progress'] = False
@@ -166,6 +180,7 @@ class Tester(object):
         results = np.empty(iterator.ranges_eval.shape, dtype=object)
         for index,data in iterator:
             results[index] = data
+            self.cache_sync()
         return results
 
     def plot_dependence(self, output="dependence", **kwargs):
