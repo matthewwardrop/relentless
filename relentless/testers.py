@@ -222,7 +222,8 @@ class Tester(object):
 
     def __del__(self):
         self.cleanup()
-        self.__cache.close()
+        if getattr(self,'_Tester__cache',None) is not None:
+            self.__cache.close()
 
     def save_config(self):
         s = shelve.open(self.path('tester_init.config'), protocol=0)
@@ -342,15 +343,3 @@ class GitTester(Tester):
 
         for field in fields:
             DiffArray(output=os.path.join(self.project_dir, output+field), new=get_map(field)(results_new).astype(float), old=get_map(field)(results_old).astype(float), tasks=tasks, maximise=field not in ComputationResult.minimise)
-
-
-#t = Tester('defense',MarathonComputation)
-#print plot_progress(t)
-#
-# with Tester('defense',MarathonComputation) as t:
-#
-#     print t.iterate_score(count=2)
-#
-#     t.ref='lazy_build'
-#
-#     print t.iterate(count=2)
