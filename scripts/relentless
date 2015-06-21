@@ -38,7 +38,7 @@ parser.add_argument('--nogit', action="store_true")
 parser.add_argument('--type', default=None)
 parser.add_argument('--wrapper', default=None)
 parser.add_argument('--wrapper-vis', dest="wrapper_vis", default=None)
-parser.add_argument('--cache', default=True, type=bool)
+parser.add_argument('--nocache', default=False, action='store_true')
 
 subparsers = parser.add_subparsers(title='actions', description='The action to be performed by relentless.', dest='action')
 
@@ -77,9 +77,9 @@ args = parser.parse_args()
 try:
 	assert not args.nogit
 	git.Repo(os.path.dirname(args.project), search_parent_directories=True)
-	t = relentless.GitTester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, computation_wrapper_vis=args.wrapper_vis, working_dir=working_dir, cache=args.cache, ref=args.ref)
+	t = relentless.GitTester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, computation_wrapper_vis=args.wrapper_vis, working_dir=working_dir, cache=not args.nocache, ref=args.ref)
 except Exception as e:
- 	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, computation_wrapper_vis=args.wrapper_vis, working_dir=working_dir, cache=args.cache)
+ 	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, computation_wrapper_vis=args.wrapper_vis, working_dir=working_dir, cache=not args.nocache)
 
 if args.action == "run":
 	for task in args.tasks:
