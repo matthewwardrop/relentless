@@ -137,3 +137,43 @@ class ComputationResult(object):
 
     def __repr__(self):
         return str(self)
+
+    def pretty_print(self):
+        from utils.console import getTerminalSize
+        width,height=getTerminalSize()
+
+        sep = "-"*width
+        print sep
+        print " Task %d" % self.task
+        print sep
+        if len(self.info.get('params')) > 0:
+            for key,value in self.info['params']:
+                print " %s: %s" % (key, value)
+            print "-"*width
+
+        info_keys = self.info.keys()
+
+
+        for key in ["score", "runtime"]:
+            if key in self.info:
+                print " - %s: %s" % (key, self.info[key])
+                info_keys.remove(key)
+
+        print " Other Information:"
+        for key in info_keys:
+            if key in ["params","returncode","task","stdout","stderr"]:
+                continue
+            print "   - %s: %s" % (key, self.info[key])
+
+        if self.info.get('returncode',0) != 0:
+            print "\nERROR: Return code was %d" % self.info['returncode']
+            if self.info.get('stdout',"").strip() != "":
+                print sep[:width/2-4] + " STDOUT " + sep[width/2+4:]
+                print self.info.get('stdout').strip()
+                print
+            if self.info.get('stderr',"").strip() != "":
+                print sep[:width/2-4] + " STDERR " + sep[width/2+4:]
+                print self.info.get('stderr').strip()
+                print
+
+        print sep

@@ -132,8 +132,7 @@ class Tester(object):
         if result is None:
             result = self.cache(value=self.computation.run(task,vis=vis,params=params),task=task,params=params)
         if print_info:
-            for item in result.info.items():
-                print "%s: %s" % item
+            result.pretty_print()
         return result
 
     def score(self, *args, **kwargs):
