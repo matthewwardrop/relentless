@@ -45,8 +45,8 @@ class Computation(object):
         defaults.update(kwargs)
         t = time.time()
         p = subprocess.Popen(*args, **defaults)
-        p.wait()
-        result = ComputationResult(task, params, runtime=time.time()-t, *p.communicate())
+        stdout, stderr = p.communicate()
+        result = ComputationResult(task, params, runtime=time.time()-t, stdout=stdout, stderr=stderr)
         result(returncode=p.returncode)
         if result.returncode != 0:
             print result.stdout
@@ -97,7 +97,7 @@ class MarathonComputation(SimpleComputation):
         if wrapper is None:
             wrapper = "java -jar %(src_dir)s/tester.jar -exec %(project)s -seed %(task)s -novis"
         if wrapper_vis is None:
-            wrapper_vis = "java -jar %(src_dir)s/tester.jar -exec %(project)s -seed %(task)s -vis"
+            wrapper_vis = "java -jar %(src_dir)s/tester.jar -exec %(project)s -seed %(task)s"
         self.wrapper = wrapper
         self.wrapper_vis = wrapper_vis
 
