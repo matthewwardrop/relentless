@@ -55,8 +55,9 @@ class Computation(object):
 
 class SimpleComputation(Computation):
 
-    def init(self, wrapper=None):
+    def init(self, wrapper=None, wrapper_vis=None):
         self.wrapper = wrapper
+        self.wrapper_vis = wrapper_vis
 
     def _compile(self):
         f = open(os.path.join(self.working_dir, 'compile.log'),'w')
@@ -69,15 +70,19 @@ class SimpleComputation(Computation):
         if compile.returncode != 0:
             raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree at %s." % os.path.join(self.working_dir, 'compile.log'))
 
-    def run(self,task=0,params={}):
+    def run(self,task=0,vis=False,params={}):
         env = os.environ.copy()
         for variable in params:
             env["RELENTLESS_%s" % variable] = str(params[variable])
 
-        if self.wrapper is None:
+        wrapper = self.wrapper
+        if vis and self.wrapper_vis is not None:
+            wrapper = self.wrapper_vis
+
+        if wrapper is None:
             cmd = [os.path.join(self.working_dir, self.project)]
         else:
-            command = self.wrapper % {  'project': os.path.join(self.working_dir, self.project),
+            command = wrapper % {  'project': os.path.join(self.working_dir, self.project),
                                         'src_dir': self.src_dir,
                                         'working_dir': self.working_dir,
                                         'task': task}
@@ -88,10 +93,13 @@ class SimpleComputation(Computation):
 
 class MarathonComputation(SimpleComputation):
 
-    def init(self, wrapper=None):
+    def init(self, wrapper=None, wrapper_vis=None):
         if wrapper is None:
             wrapper = "java -jar %(src_dir)s/tester.jar -exec %(project)s -seed %(task)s -novis"
+        if wrapper_vis is None:
+            wrapper_vis = "java -jar %(src_dir)s/tester.jar -exec %(project)s -seed %(task)s -vis"
         self.wrapper = wrapper
+        self.wrapper_vis = wrapper_vis
 
 class ComputationResult(object):
 

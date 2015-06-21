@@ -33,15 +33,18 @@ parser.add_argument('project', type=str, help='The project to be analysed by rel
 #parser.add_argument('integers', metavar='N', type=int, nargs='+',
 #                   help='an integer for the accumulator')
 
+parser.add_argument('--ref', default="master")
+parser.add_argument('--nogit', action="store_true")
 parser.add_argument('--type', default=None)
 parser.add_argument('--wrapper', default=None)
-parser.add_argument('--ref', default="master")
+parser.add_argument('--wrapper-vis', dest="wrapper_vis", default=None)
 parser.add_argument('--cache', default=True, type=bool)
 
 subparsers = parser.add_subparsers(title='actions', description='The action to be performed by relentless.', dest='action')
 
 parser_run = subparsers.add_parser('run')
 parser_run.add_argument('tasks', default=0, type=int, nargs="*")
+parser_run.add_argument('--vis', action='store_true')
 parser_run.add_argument('--params', default=[], nargs="+")
 parser_run.add_argument('--print-info', dest='print_info', default=True, type=bool)
 
@@ -61,8 +64,7 @@ parser_dependence.add_argument('--params', default=[], nargs="+")
 parser_dependence.add_argument('--nprocs', default=None, type=int)
 
 parser_compare = subparsers.add_parser('compare')
-parser_compare.add_argument('ref')
-parser_compare.add_argument('--base', default='master')
+parser_compare.add_argument('ref_cmp')
 parser_compare.add_argument('--output', default=None)
 parser_compare.add_argument('--count', default=1, type=int)
 parser_compare.add_argument('--fields', default=['score'], nargs='+')
@@ -73,14 +75,15 @@ parser_compare.add_argument('--nprocs', default=None, type=int)
 args = parser.parse_args()
 
 try:
-	git.Repo(os.path.dirname(args.project))
-	t = relentless.GitTester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, working_dir=working_dir, cache=args.cache, ref=args.ref)
+	assert not args.nogit
+	git.Repo(os.path.dirname(args.project), search_parent_directories=True)
+	t = relentless.GitTester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, computation_wrapper_vis=args.wrapper_vis, working_dir=working_dir, cache=args.cache, ref=args.ref)
 except Exception as e:
- 	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, working_dir=working_dir, cache=args.cache)
+ 	t = relentless.Tester(args.project, computation_type=args.type, computation_wrapper=args.wrapper, computation_wrapper_vis=args.wrapper_vis, working_dir=working_dir, cache=args.cache)
 
 if args.action == "run":
 	for task in args.tasks:
-		t.run(task, params=get_params(args.params), print_info=args.print_info)
+		t.run(task, vis=args.vis, params=get_params(args.params), print_info=args.print_info)
 
 elif args.action == "annotate":
 	if isinstance(t,relentless.GitTester):
@@ -93,6 +96,6 @@ elif args.action == "dependence":
 
 elif args.action == "compare":
 	if isinstance(t,relentless.GitTester):
-		t.compare(ref=args.ref, base=args.base, output=args.output, count=args.count, fields=args.fields, tasks=args.tasks, params=get_params(args.params), iter_opts={'nprocs': args.nprocs})
+		t.compare(ref=args.ref_cmp, output=args.output, count=args.count, fields=args.fields, tasks=args.tasks, params=get_params(args.params), iter_opts={'nprocs': args.nprocs})
 	else:
 		raise ValueError("Annotation is only available for projects stored in git repositories.")

@@ -28,7 +28,7 @@ class Tester(object):
         'MarathonComputation': MarathonComputation
     }
 
-    def __init__(self, project, computation_type=None, computation_wrapper=None, working_dir='_relentless', cache=True, auto_profile=True, **kwargs):
+    def __init__(self, project, computation_type=None, computation_wrapper=None, computation_wrapper_vis=None, working_dir='_relentless', cache=True, auto_profile=True, **kwargs):
         self.project = os.path.basename(project)
         self.project_dir = os.path.abspath(os.path.dirname(project))
         self.working_dir = working_dir
@@ -51,6 +51,7 @@ class Tester(object):
             raise ValueError("Invalid computation_type provided.")
 
         self.__set_attribute('computation_wrapper',computation_wrapper)
+        self.__set_attribute('computation_wrapper_vis',computation_wrapper_vis)
 
         self.__use_cache = cache
 
@@ -114,7 +115,7 @@ class Tester(object):
             return self._computation
 
     def get_computation(self):
-        return self.computation_type(self.project, working_dir=self.project_dir, wrapper=self.computation_wrapper)
+        return self.computation_type(self.project, working_dir=self.project_dir, wrapper=self.computation_wrapper, wrapper_vis=self.computation_wrapper_vis)
 
     def cleanup(self):
         self._computation = None
@@ -123,11 +124,13 @@ class Tester(object):
     def _cleanup(self):
         pass
 
-    def run(self,task=0,params={},print_info=False):
+    def run(self,task=0,vis=False,params={},print_info=False):
         task = int(task)
-        result = self.cache(task=task, params=params)
+        result = None
+        if not vis:
+            result = self.cache(task=task, params=params)
         if result is None:
-            result = self.cache(value=self.computation.run(task,params),task=task,params=params)
+            result = self.cache(value=self.computation.run(task,vis=vis,params=params),task=task,params=params)
         if print_info:
             for item in result.info.items():
                 print "%s: %s" % item
@@ -299,7 +302,7 @@ class GitTester(Tester):
         else:
             self.__repo = git.Repo(self.project_dir).clone(d)
         self.__repo.git.checkout(self.__get_ref(self.__repo, self.ref))
-        return self.computation_type(self.project, working_dir=d, src_dir=self.project_dir, wrapper=self.computation_wrapper)
+        return self.computation_type(self.project, working_dir=d, src_dir=self.project_dir, wrapper=self.computation_wrapper, wrapper_vis=self.computation_wrapper_vis)
 
     def _cleanup(self):
         if getattr(self, '_GitTester__ref', None) is not None:
@@ -339,16 +342,18 @@ class GitTester(Tester):
 
         GitAnnotate(output=os.path.join(self.project_dir,output), repo=self.project_dir, annotate=annotations, branches=branches)
 
-    def compare(self, ref, base='master', output=None, count=1,fields=['score'],tasks=None,params={},iter_opts={}):
+    def compare(self, ref, output=None, count=1,fields=['score'],tasks=None,params={},iter_opts={}):
         from .utils import DiffArray
+
+        base = self.ref
 
         if output is None:
             output = "(%s) <- (%s) " % (ref, base)
 
+        results_old = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
         self.ref = ref
         results_new = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
         self.ref = base
-        results_old = self.iterate(count=count, tasks=tasks, params=params, iter_opts=iter_opts)
 
         def get_map(field):
             def f(a):
