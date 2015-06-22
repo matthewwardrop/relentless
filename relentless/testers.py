@@ -75,7 +75,7 @@ class Tester(object):
         self.__use_cache = False # Cache does not make sense outside of a git repository where things can remain the same.
 
     def cache(self, value=None, task=0, params={}):
-        if not self.__use_cache or len(params) > 0:
+        if not self.__use_cache or len(params) > 0 or task==0:
             return value
 
         try:
