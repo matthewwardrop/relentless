@@ -68,7 +68,7 @@ class SimpleComputation(Computation):
         compile.wait()
         f.close()
         if compile.returncode != 0:
-            f = open(os.path.join(self.working_dir, 'compile.log'),'w')
+            f = open(os.path.join(self.working_dir, 'compile.log'),'r')
             print f.read()
             f.close()
             raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree at %s; or see above." % os.path.join(self.working_dir, 'compile.log'))
