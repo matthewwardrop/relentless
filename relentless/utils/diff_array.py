@@ -1,5 +1,6 @@
 import os
 import subprocess
+import math
 import numpy as np
 from .xelatex import XeLaTeX
 
@@ -25,7 +26,15 @@ class DiffArray(XeLaTeX):
 		while not it.finished:
 			diffs.append( (it.index, float(it[0]) ) )
 			it.iternext()
-
+			
+		total_new = np.sum(new)
+		total_old = np.sum(old)
+		
+		wins = np.sum(r>0)
+		losses = np.sum(r<0)
+		LOS = 0.5*(1+math.erf( float(wins - losses)/math.sqrt(wins+losses)/math.sqrt(2) ))
+		
+		# TODO: Simplify with numpy
 		max_diff = 1.0
 		max_improvement = 0
 		max_regression = 0
@@ -46,7 +55,7 @@ class DiffArray(XeLaTeX):
 			avg_improvement += rel
 		avg_improvement /= len(diffs)
 
-		output['summary'] = r"	\node at (%.1f, 1) {Best: %.3f | Worst: %.3f | Avg: %.3f};" % (float(columns-1)/2, max_improvement, max_regression, avg_improvement)
+		output['summary'] = r"""	\node[rectangle, align=center] at (%.1f, 1) {Best: %.3f | Worst: %.3f | Avg: %.3f | Rel: %.3f \\ Wins: %d | Losses: %d | LOS: %.3f};""" % (float(columns-1)/2, max_improvement, max_regression, avg_improvement, float(total_new)/float(total_old), wins, losses, LOS)
 
 		output['elements'] = []
 		for count, (index, rel) in enumerate(diffs):
