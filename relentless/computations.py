@@ -68,7 +68,10 @@ class SimpleComputation(Computation):
         compile.wait()
         f.close()
         if compile.returncode != 0:
-            raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree at %s." % os.path.join(self.working_dir, 'compile.log'))
+            f = open(os.path.join(self.working_dir, 'compile.log'),'w')
+            print f.read()
+            f.close()
+            raise RuntimeError("Code did not compile successfully. See the compile.log in the source tree at %s; or see above." % os.path.join(self.working_dir, 'compile.log'))
 
     def run(self,task=0,vis=False,params={}):
         env = os.environ.copy()
