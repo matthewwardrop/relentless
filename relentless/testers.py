@@ -165,6 +165,7 @@ class Tester(object):
         tasks = self.__tasks(count, tasks)
 
         if self.__prepare_iterate(tasks, params=params, ranges=ranges):
+            iter_opts = {}
             iter_opts['nprocs'] = 1
             iter_opts['progress'] = False
 
