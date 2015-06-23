@@ -62,7 +62,7 @@ class SimpleComputation(Computation):
     def _compile(self):
         f = open(os.path.join(self.working_dir, 'compile.log'),'w')
         if os.path.exists(os.path.join(self.working_dir, 'Makefile')):
-            subprocess.Popen(["make",os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
+            compile = subprocess.Popen(["make",os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
         else:
             compile = subprocess.Popen(["make","-f",os.path.join(os.path.dirname(os.path.abspath(__file__)),'Makefile'),os.path.basename(self.project)],cwd=self.working_dir, stdout=f, stderr=f)
         compile.wait()
