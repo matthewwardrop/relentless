@@ -332,6 +332,9 @@ class GitTester(Tester):
                     max_score = score
                 annotations[commit.hexsha] = score
 
+        if max_score in (0,-1):
+            max_score = 1
+
         def scale(x):
             x = float(x)
             return (np.exp(x/max_score) - 1) / (np.exp(1)-1)
